@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VB-CABLE Microphone Verification</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 24px;
+            text-align: center;
+            color: var(--text);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            word-break: break-all;
+        }
+
+        #level, #maximum {
+            font-size: 2.25rem;
+            font-family: monospace;
+        }
+
+        .meter-container {
+            height: 16px;
+            background: #090d16;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .meter-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+            transition: width 0.05s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VB-CABLE Audio Verification</h1>
+
+        <div class="card">
+            <div class="label">Input Device</div>
+            <div class="value" id="device">Waiting for microphone...</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Live Peak Level</div>
+            <div class="value" id="level">-&infin; dB</div>
+            <div class="meter-container">
+                <div class="meter-bar" id="meter"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">Maximum Observed Peak</div>
+            <div class="value" id="maximum">-&infin; dB</div>
+        </div>
+    </div>
+
+    <script>
+        window.audioMetrics = {
+            maxDb: -Infinity,
+            sampleCount: 0,
+            deviceId: null,
+            deviceLabel: null,
+            started: false
+        };
+
+        async function start() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true
+            });
+
+            const track = stream.getAudioTracks()[0];
+            const settings = track.getSettings();
+
+            window.audioMetrics.deviceId = settings.deviceId;
+            window.audioMetrics.deviceLabel = window.__POODLE_AUDIO_LABEL__ || track.label;
+            window.audioMetrics.started = true;
+
+            document.getElementById("device").textContent = window.audioMetrics.deviceLabel;
+
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const source = context.createMediaStreamSource(stream);
+            const analyser = context.createAnalyser();
+
+            analyser.fftSize = 2048;
+            source.connect(analyser);
+
+            const buffer = new Float32Array(analyser.fftSize);
+            const meterBar = document.getElementById("meter");
+
+            function analyse() {
+                analyser.getFloatTimeDomainData(buffer);
+
+                let peak = 0;
+                let sum = 0;
+
+                for (let i = 0; i < buffer.length; i++) {
+                    const val = Math.abs(buffer[i]);
+                    if (val > peak) {
+                        peak = val;
+                    }
+                    sum += buffer[i] * buffer[i];
+                }
+
+                const rms = Math.sqrt(sum / buffer.length);
+                const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+                const peakDb = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
+
+                window.audioMetrics.sampleCount++;
+
+                if (peakDb > window.audioMetrics.maxDb) {
+                    window.audioMetrics.maxDb = peakDb;
+                }
+
+                document.getElementById("level").textContent = isFinite(peakDb) ? `${peakDb.toFixed(2)} dB` : "-∞ dB";
+                document.getElementById("maximum").textContent = isFinite(window.audioMetrics.maxDb) ? `${window.audioMetrics.maxDb.toFixed(2)} dB` : "-∞ dB";
+
+                // Map -60dB -> 0%, 0dB -> 100%
+                let percentage = Math.max(0, Math.min(100, ((peakDb + 60) / 60) * 100));
+                meterBar.style.width = `${percentage}%`;
+
+                requestAnimationFrame(analyse);
+            }
+
+            analyse();
+        }
+
+        start().catch(error => {
+            console.error(error);
+            document.getElementById("device").textContent = "ERROR: " + error.message;
+        });
+    </script>
+</body>
+</html>

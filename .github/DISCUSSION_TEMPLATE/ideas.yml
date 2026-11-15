@@ -1,0 +1,21 @@
+title: "[Idea] "
+labels: ["enhancement", "discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for sharing your idea for Poodll LMS Automation!
+  - type: textarea
+    id: idea
+    attributes:
+      label: What is your idea?
+      description: Share your vision for improving speech synthesis, activity solvers, or UI features.
+    validations:
+      required: true
+  - type: textarea
+    id: benefits
+    attributes:
+      label: How will this benefit the community?
+      description: Explain the advantages for learners or developers using the framework.
+    validations:
+      required: false

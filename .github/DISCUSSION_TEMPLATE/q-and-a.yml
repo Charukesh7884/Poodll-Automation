@@ -1,0 +1,21 @@
+title: "[Q&A] "
+labels: ["question", "discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask questions about setting up VB-Audio Virtual Cable, configuring Gemini API, or running activity solvers.
+  - type: textarea
+    id: question
+    attributes:
+      label: What is your question?
+      description: Provide as much detail as possible about your environment and setup.
+    validations:
+      required: true
+  - type: textarea
+    id: attempts
+    attributes:
+      label: What have you tried so far?
+      description: Describe what you've tested or any logs you've observed.
+    validations:
+      required: false

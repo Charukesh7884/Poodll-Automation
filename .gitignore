@@ -1,0 +1,28 @@
+# Environment & Secrets
+.env
+*.env
+.env.*
+!.env.example
+
+# Storage, Sessions & Authentication
+storage/
+storage/*.json
+*.session
+*.cookies
+
+# Temporary & Working Files
+temp/
+browser_profile/
+*.log
+
+# Python Caches & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# IDE & Operating System Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
